@@ -1,0 +1,29 @@
+{
+  "name": "frontend",
+  "version": "0.0.1-alpha.0",
+  "description": "> TODO: description",
+  "author": "tangqianchong <tangqianchong@agree.com.cn>",
+  "homepage": "https://github.com/MrMeatRonin/xbench#readme",
+  "license": "ISC",
+  "main": "lib/frontend.js",
+  "directories": {
+    "lib": "lib",
+    "test": "__tests__"
+  },
+  "files": [
+    "lib"
+  ],
+  "publishConfig": {
+    "registry": "http://registry.npmmirror.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MrMeatRonin/xbench.git"
+  },
+  "scripts": {
+    "test": "node ./__tests__/frontend.test.js"
+  },
+  "bugs": {
+    "url": "https://github.com/MrMeatRonin/xbench/issues"
+  }
+}
