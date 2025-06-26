@@ -1,0 +1,91 @@
+name: Lerna Monorepo CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.get-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'yarn'
+      
+      # Identify changed packages using Lerna
+      - name: Get changed packages
+        id: get-matrix
+        run: |
+          PKGS=$(npx lerna ls --since origin/main --json --loglevel silent)
+          echo "matrix={\"packages\":$PKGS}" >> $GITHUB_OUTPUT
+
+  test:
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'yarn'
+      
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      
+      - name: Run tests
+        run: |
+          if [ "${{ matrix.packages.length }}" -gt 0 ]; then
+            npx lerna run test --scope "${{ join(matrix.packages.*.name, ' --scope ') }}"
+          else
+            echo "No packages changed, skipping tests"
+          fi
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'yarn'
+      
+      - name: Build all packages
+        run: npx lerna run build --concurrency 4
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: production-builds
+          path: |
+            apps/frontend/dist
+            apps/backend/dist
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: production-builds
+      
+      # Example: Deploy frontend to Vercel
+      - name: Deploy Frontend
+        run: |
+          cd apps/frontend
+          npx vercel --prod --token=${{ secrets.VERCEL_TOKEN }}
+      
+      # Example: Deploy backend to AWS
+      - name: Deploy Backend
+        run: |
+          cd apps/backend
+          aws s3 sync ./dist s3://your-bucket --delete
